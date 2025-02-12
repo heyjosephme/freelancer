@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:latest # Using PostgreSQL 16, you can change this to any version you need
+    container_name: pdf-editor-db # Custom container name for easy reference
+    restart: unless-stopped # Automatically restart container unless manually stopped
+    environment:
+      POSTGRES_USER: johndoe # Database user
+      POSTGRES_PASSWORD: randompassword # Database password
+      POSTGRES_DB: pdfeditor # Database name (store in env file?)
+    ports:
+      - "5432:5432" # Map container's 5432 port to host's 5432 port
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist data even if container is removed
+      # Optionally, you can mount initialization scripts:
+      # - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck: # Add healthcheck to ensure database is running properly
+      test: ["CMD-SHELL", "pg_isready -U johndoe -d pdfeditor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data: # Named volume to persist database data
+    name: pdf-editor-postgres_data # Custom name for the volume
