@@ -1,8 +1,7 @@
-import { AppSidebar } from "@/components/app-sidebar";
 export default function Home() {
   return (
     <div>
-      <AppSidebar />
+      <h1>Hello World</h1>
     </div>
   );
 }

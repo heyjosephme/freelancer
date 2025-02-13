@@ -13,28 +13,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  title     String   @db.VarChar(255)
-  content   String?
-  published Boolean  @default(false)
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
+model User {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  email    String     @unique
+  name     String?
+  worklogs Worklogs[]
+  profile  Profile?
 }
+
+// both clients and contractors are users
 
 model Profile {
-  id     Int     @id @default(autoincrement())
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   bio    String?
   user   User    @relation(fields: [userId], references: [id])
-  userId Int     @unique
+  userId String  @unique
+
+  // Add addresses relation
+  addresses Address[]
 }
 
-model User {
-  id      Int      @id @default(autoincrement())
-  email   String   @unique
-  name    String?
-  posts   Post[]
-  profile Profile?
+model Worklogs {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
 }
+
+model Address {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  zipcode  String
+  city     String
+  state    String
+  address1 String
+  address2 String? // Made optional since not always needed
+
+  // Add these fields for better address management
+  addressType AddressType
+  isDefault   Boolean     @default(false)
+
+  // Add relation to Profile
+  profile   Profile @relation(fields: [profileId], references: [id])
+  profileId String
+}
+
+// Add enum for address types
+enum AddressType {
+  HOME
+  WORK
+  BILLING
+  SHIPPING
+  OTHER
+}
+
+// users can CRUD clients, 
+// users can CRUD profiles, worklogs
