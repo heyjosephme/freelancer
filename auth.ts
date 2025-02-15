@@ -1,48 +1,40 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import { compare } from "bcryptjs";
+import { prisma } from "@/prisma";
+import { hashPassword } from "@/lib/auth/password";
+import { signInSchema } from "./lib/zod";
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: {
+  /* session: {
     strategy: "jwt",
-  },
-  pages: {
+  }, */
+  /*  pages: {
     signIn: "/signin",
-    signUp: "/signup",
-  },
+    newUser: "/signup",
+  }, */
   providers: [
     CredentialsProvider({
-      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: {},
+        password: {},
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
-        }
+        const { email, password } = await signInSchema.parseAsync(credentials);
+        // Hash the provided password
+        const hashedPassword = await hashPassword(password);
 
-        const user = await prisma.user.findUnique({
+        // Find user with matching email and password hash
+        const user = await prisma.user.findFirst({
           where: {
-            email: credentials.email
-          }
+            email,
+            password: hashedPassword,
+            deletedAt: null,
+          },
         });
 
-        if (!user || !user.password) {
-          throw new Error("Invalid credentials");
-        }
-
-        const isValid = await compare(credentials.password, user.password);
-
-        if (!isValid) {
+        if (!user) {
           throw new Error("Invalid credentials");
         }
 
@@ -51,11 +43,15 @@ export const {
           email: user.email,
           name: user.name,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
-    async session({ token, session }) {
+    /* authorized: async ({ auth }) => {
+      // Logged in users are authenticated, otherwise redirect to login page
+      return !!auth;
+    }, */
+    /* async session({ token, session }) {
       if (token) {
         session.user.id = token.id;
         session.user.name = token.name;
@@ -71,6 +67,6 @@ export const {
       }
 
       return token;
-    }
-  }
-}); 
+    }*/
+  },
+});

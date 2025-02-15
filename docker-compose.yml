@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:latest # Using PostgreSQL 16, you can change this to any version you need
-    container_name: pdf-editor-db # Custom container name for easy reference
+    container_name: freelancer-db # Custom container name for easy reference
     restart: unless-stopped # Automatically restart container unless manually stopped
     environment:
       POSTGRES_USER: johndoe # Database user
@@ -21,4 +21,4 @@ services:
 
 volumes:
   postgres_data: # Named volume to persist database data
-    name: pdf-editor-postgres_data # Custom name for the volume
+    name: freelancer-db-volume # Custom name for the volume
