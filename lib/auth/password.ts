@@ -1,4 +1,4 @@
-// Use Web Crypto API for hashing (available in Edge runtime)
+// Use Web Crypto API for hashing (available in Edge runtime and Node.js)
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
