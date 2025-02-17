@@ -1,13 +1,20 @@
+import { hash, verify } from "@node-rs/argon2";
+
 // Use Web Crypto API for hashing (available in Edge runtime and Node.js)
 export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
+  // Argon2 configuration
+  const hashedPassword = await hash(password, {
+    memoryCost: 65536, // Memory usage in KiB (64 MB)
+    timeCost: 3, // Number of iterations
+    parallelism: 4, // Degree of parallelism
+  });
 
-  // SHA-256 for password hashing
-  const hash = await crypto.subtle.digest("SHA-256", data);
-
-  // Convert hash to base64 string
-  return btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return hashedPassword;
 }
 
-// We don't need verifyPassword anymore since we'll compare hashes directly
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string
+): Promise<boolean> {
+  return await verify(hashedPassword, password);
+}

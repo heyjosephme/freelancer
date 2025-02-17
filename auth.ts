@@ -1,19 +1,45 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/prisma";
-import { hashPassword } from "@/lib/auth/password";
-import { signInSchema } from "./lib/zod";
+import { signInSchema } from "./lib/validations/auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  /* session: {
-    strategy: "jwt",
-  }, */
-  /*  pages: {
+  session: { strategy: "jwt" },
+  pages: {
     signIn: "/signin",
     newUser: "/signup",
-  }, */
+    signOut: "/auth/signout",
+    error: "/auth/error",
+    verifyRequest: "/auth/verify-request",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
+    },
+    /* async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.name = token.name;
+        session.user.email = token.email;
+      }
+      return session;
+    }, */
+    async redirect({ url, baseUrl }) {
+      // Allows relative URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // Allows redirects to the same origin
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      return baseUrl;
+    },
+  },
   providers: [
     CredentialsProvider({
       credentials: {
@@ -21,52 +47,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
       },
       async authorize(credentials) {
-        const { email, password } = await signInSchema.parseAsync(credentials);
-        // Hash the provided password
-        const hashedPassword = await hashPassword(password);
+        try {
+          const { email, password } = await signInSchema.parseAsync(
+            credentials
+          );
 
-        // Find user with matching email and password hash
-        const user = await prisma.user.findFirst({
-          where: {
-            email,
-            password: hashedPassword,
-            deletedAt: null,
-          },
-        });
+          // Use fetch to call our Node.js API endpoint
+          const response = await fetch(
+            `${process.env.NEXTAUTH_URL}/api/auth/verify`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            }
+          );
 
-        if (!user) {
-          throw new Error("Invalid credentials");
+          if (!response.ok) {
+            throw new Error("Invalid credentials");
+          }
+
+          const user = await response.json();
+          return user;
+        } catch (error) {
+          throw new Error("Authentication failed");
         }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
   ],
-  callbacks: {
-    /* authorized: async ({ auth }) => {
-      // Logged in users are authenticated, otherwise redirect to login page
-      return !!auth;
-    }, */
-    /* async session({ token, session }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-      }
-
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-      }
-
-      return token;
-    }*/
-  },
 });

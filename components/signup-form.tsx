@@ -16,10 +16,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { SignUpInput, signUpSchema } from "@/lib/validations/auth";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function SignUpForm() {
   const [isPending, setIsPending] = useState(false);
-
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -41,6 +42,8 @@ export function SignUpForm() {
       if (result?.error) {
         toast.error(result.error);
       }
+      // Handle redirect client-side
+      router.push("/dashboard");
     } catch (error) {
       toast.error("Something went wrong");
     } finally {
